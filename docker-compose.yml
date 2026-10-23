@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-analytics}
+      READONLY_PASSWORD: ${READONLY_PASSWORD:-ro_secret}
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d:ro   # runs once on first start
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: ./backend
+    environment:
+      # The API connects as the read-only role, never as the owner.
+      DATABASE_URL: postgresql://analyst_ro:${READONLY_PASSWORD:-ro_secret}@db:5432/${POSTGRES_DB:-analytics}
+      MAX_ROWS: ${MAX_ROWS:-1000}
+      STATEMENT_TIMEOUT_MS: ${STATEMENT_TIMEOUT_MS:-5000}
+      REFERENCE_DATE: ${REFERENCE_DATE:-2026-01-15}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:
