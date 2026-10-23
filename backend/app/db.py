@@ -29,7 +29,11 @@ def get_pool() -> ConnectionPool:
         open=False,
         kwargs={"autocommit": False},
     )
-    pool.open(wait=True, timeout=5)
+    try:
+        pool.open(wait=True, timeout=5)
+    except Exception:
+        pool.close()          # don't leak the pool's background threads on a failed start
+        raise
     return pool
 
 

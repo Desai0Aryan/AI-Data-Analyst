@@ -25,6 +25,11 @@ services:
       MAX_ROWS: ${MAX_ROWS:-1000}
       STATEMENT_TIMEOUT_MS: ${STATEMENT_TIMEOUT_MS:-5000}
       REFERENCE_DATE: ${REFERENCE_DATE:-2026-01-15}
+      LLM_PROVIDER: ${LLM_PROVIDER:-anthropic}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      MAX_ATTEMPTS: ${MAX_ATTEMPTS:-3}
     depends_on:
       db:
         condition: service_healthy
