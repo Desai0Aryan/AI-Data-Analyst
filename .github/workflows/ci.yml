@@ -1,0 +1,22 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Start seeded Postgres
+        run: docker compose up -d --wait db
+      - name: Install and test
+        working-directory: backend
+        run: |
+          pip install -r requirements-dev.txt
+          python -m pytest -q
+      - name: Offline evaluation (replay)
+        working-directory: backend
+        run: |
+          python -m evals.run --min-accuracy 1.0 --markdown eval-report.md
+          cat eval-report.md >> "$GITHUB_STEP_SUMMARY"

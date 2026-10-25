@@ -28,6 +28,7 @@ services:
       LLM_PROVIDER: ${LLM_PROVIDER:-anthropic}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-}
+      LLM_REPLAY_FILE: ${LLM_REPLAY_FILE:-evals/recordings/reference.json}
       LLM_BASE_URL: ${LLM_BASE_URL:-}
       MAX_ATTEMPTS: ${MAX_ATTEMPTS:-3}
     depends_on:

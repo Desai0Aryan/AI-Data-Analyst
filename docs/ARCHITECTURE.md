@@ -71,6 +71,6 @@ excluded from revenue.
 
 - [x] Part 1: Database, SQL guard, safe execution, schema introspection, API
 - [x] Part 2: LLM text-to-SQL, validation-and-repair loop, `/api/ask`
-- [ ] Part 3: Evaluation suite (generated SQL vs known answers)
+- [x] Part 3: Evaluation suite (generated SQL vs known answers), replay/record LLM, CI gate
 - [ ] Part 4: React frontend (question box, SQL inspector, charts)
 - [ ] Part 5: Polish: written explanations, README demo, CI for evals

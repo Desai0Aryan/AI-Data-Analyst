@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     reference_date: str = "2026-01-15"
 
     # --- LLM (provider-agnostic) ---
-    llm_provider: str = "anthropic"          # "anthropic" | "openai" (also any OpenAI-compatible server)
+    llm_provider: str = "anthropic"          # "anthropic" | "openai" (any OpenAI-compatible server) | "replay" (keyless demo)
+    llm_replay_file: str = "evals/recordings/reference.json"   # used when llm_provider == "replay"
     llm_api_key: str = ""
     llm_model: str = ""                      # empty -> sensible default per provider
     llm_base_url: str = ""                   # empty -> provider default; set for Ollama/vLLM/Azure etc.

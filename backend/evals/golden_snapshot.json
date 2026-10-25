@@ -1,0 +1,376 @@
+{
+ "agg_total_revenue": {
+  "columns": [
+   "total_revenue"
+  ],
+  "rows": [
+   [
+    2293646.94
+   ]
+  ]
+ },
+ "agg_orders_by_status": {
+  "columns": [
+   "status",
+   "orders"
+  ],
+  "rows": [
+   [
+    "completed",
+    5400
+   ],
+   [
+    "cancelled",
+    300
+   ],
+   [
+    "refunded",
+    300
+   ]
+  ]
+ },
+ "agg_avg_order_value": {
+  "columns": [
+   "avg_order_value"
+  ],
+  "rows": [
+   [
+    426.73
+   ]
+  ]
+ },
+ "agg_units_by_category": {
+  "columns": [
+   "category",
+   "units"
+  ],
+  "rows": [
+   [
+    "Electronics",
+    5903
+   ],
+   [
+    "Sports & Outdoors",
+    6550
+   ],
+   [
+    "Home & Kitchen",
+    6550
+   ],
+   [
+    "Books",
+    3500
+   ],
+   [
+    "Beauty",
+    3250
+   ]
+  ]
+ },
+ "date_last_quarter_revenue": {
+  "columns": [
+   "revenue"
+  ],
+  "rows": [
+   [
+    304561.01
+   ]
+  ]
+ },
+ "date_quarterly_2025": {
+  "columns": [
+   "quarter",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "2025-01-01",
+    286213.41
+   ],
+   [
+    "2025-04-01",
+    278002.52
+   ],
+   [
+    "2025-07-01",
+    297343.94
+   ],
+   [
+    "2025-10-01",
+    304561.01
+   ]
+  ]
+ },
+ "date_last_month_orders": {
+  "columns": [
+   "completed_orders"
+  ],
+  "rows": [
+   [
+    245
+   ]
+  ]
+ },
+ "date_h2_2024_revenue": {
+  "columns": [
+   "revenue"
+  ],
+  "rows": [
+   [
+    554813.16
+   ]
+  ]
+ },
+ "date_yoy_growth": {
+  "columns": [
+   "growth_pct"
+  ],
+  "rows": [
+   [
+    3.42
+   ]
+  ]
+ },
+ "join_top_customers": {
+  "columns": [
+   "email",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "customer162@example.com",
+    42159.5
+   ],
+   [
+    "customer82@example.com",
+    42100.85
+   ],
+   [
+    "customer2@example.com",
+    42092.45
+   ],
+   [
+    "customer122@example.com",
+    41933.45
+   ],
+   [
+    "customer42@example.com",
+    41933.45
+   ]
+  ]
+ },
+ "join_revenue_by_country": {
+  "columns": [
+   "country",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "United Kingdom",
+    399694.64
+   ],
+   [
+    "Brazil",
+    242426.75
+   ],
+   [
+    "Australia",
+    124439.25
+   ],
+   [
+    "Germany",
+    412377.2
+   ],
+   [
+    "Japan",
+    451004.75
+   ],
+   [
+    "Canada",
+    87820.7
+   ],
+   [
+    "United States",
+    348634.9
+   ],
+   [
+    "France",
+    227248.75
+   ]
+  ]
+ },
+ "join_top_category": {
+  "columns": [
+   "category",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "Home & Kitchen",
+    919958.8
+   ]
+  ]
+ },
+ "join_discontinued_revenue": {
+  "columns": [
+   "revenue"
+  ],
+  "rows": [
+   [
+    166353.95
+   ]
+  ]
+ },
+ "trap_no_sales_last_quarter": {
+  "columns": [
+   "product"
+  ],
+  "rows": [
+   [
+    "Smart Watch"
+   ]
+  ]
+ },
+ "nulls_customers_by_channel": {
+  "columns": [
+   "channel",
+   "customers"
+  ],
+  "rows": [
+   [
+    "social",
+    34
+   ],
+   [
+    "organic",
+    35
+   ],
+   [
+    "email",
+    34
+   ],
+   [
+    "paid_search",
+    34
+   ],
+   [
+    "unknown",
+    28
+   ],
+   [
+    "referral",
+    35
+   ]
+  ]
+ },
+ "nulls_discount_lost": {
+  "columns": [
+   "discount_amount"
+  ],
+  "rows": [
+   [
+    92959.61
+   ]
+  ]
+ },
+ "nulls_discount_share": {
+  "columns": [
+   "pct_discounted"
+  ],
+  "rows": [
+   [
+    31.3
+   ]
+  ]
+ },
+ "rank_top_products": {
+  "columns": [
+   "product",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "Robot Vacuum",
+    339487.2
+   ],
+   [
+    "Dumbbell Set",
+    189542.9
+   ],
+   [
+    "Noise-Cancelling Headphones",
+    173793.75
+   ],
+   [
+    "Espresso Machine",
+    170626.1
+   ],
+   [
+    "Knife Set",
+    164004.15
+   ]
+  ]
+ },
+ "rank_best_month": {
+  "columns": [
+   "month",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "2025-08-01",
+    106915.43
+   ]
+  ]
+ },
+ "trap_biggest_decline": {
+  "columns": [
+   "product",
+   "prev_quarter_revenue",
+   "last_quarter_revenue",
+   "change"
+  ],
+  "rows": [
+   [
+    "Wireless Earbuds",
+    14486.19,
+    1551.81,
+    -12934.38
+   ],
+   [
+    "Smart Watch",
+    10532.7,
+    0,
+    -10532.7
+   ],
+   [
+    "Robot Vacuum",
+    49438.8,
+    43496.1,
+    -5942.7
+   ],
+   [
+    "4K Action Camera",
+    6019.75,
+    1731.3,
+    -4288.45
+   ],
+   [
+    "Laptop Stand",
+    4099.5,
+    900,
+    -3199.5
+   ]
+  ]
+ },
+ "trap_cancelled_refunded_value": {
+  "columns": [
+   "lost_value"
+  ],
+  "rows": [
+   [
+    233228.6
+   ]
+  ]
+ }
+}

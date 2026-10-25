@@ -1,4 +1,4 @@
-.PHONY: up down reset test logs
+.PHONY: up down reset test logs eval eval-naive eval-live
 
 up:            ## Start Postgres + API (http://localhost:8000/docs)
 	docker compose up -d --build
@@ -14,3 +14,12 @@ test:          ## Run the whole test suite (needs the db container running)
 
 logs:
 	docker compose logs -f
+
+eval:          ## Offline eval: replay the reference recording (validates harness + pipeline)
+	cd backend && python -m evals.run --min-accuracy 1.0
+
+eval-naive:    ## Replay a careless model: the harness MUST report failures
+	cd backend && python -m evals.run --recording evals/recordings/naive.json
+
+eval-live:     ## Evaluate your real LLM (needs LLM_API_KEY); saves a replayable recording
+	cd backend && python -m evals.run --mode live --record evals/recordings/live.json --markdown eval-report.md

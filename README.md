@@ -3,12 +3,12 @@
 Ask a business question in plain English. The system writes SQL, checks it, runs it against
 PostgreSQL in a locked-down read-only session, and (coming in later parts) draws a chart and explains the answer.
 
-> **Status: Part 2 of 5 complete** (secure foundation + LLM text-to-SQL with a repair loop). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+> **Status: Part 3 of 5 complete** (secure foundation + LLM text-to-SQL with a repair loop + evaluation suite). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Quick start
 
 ```bash
-cp .env.example .env        # then set LLM_API_KEY
+cp .env.example .env        # then set LLM_API_KEY (or LLM_PROVIDER=replay for a keyless demo)
 docker compose up -d --build
 open http://localhost:8000/docs       # interactive API docs
 ```
@@ -49,8 +49,20 @@ curl -s 'localhost:8000/api/schema?prompt=true' | python -m json.tool
   later failures never throw it away. The response includes the full attempt trace.
 - **Provider-agnostic LLM layer**: Anthropic, OpenAI, or any OpenAI-compatible server (Ollama, vLLM),
   over plain HTTP with retries. No vendor SDK lock-in.
-- **131 tests**, including the repair loop (scripted fake LLM against real Postgres) and a
-  prompt-injection test proving destructive SQL never runs.
+- **Evaluation suite** ([docs/EVALUATION.md](docs/EVALUATION.md)): 26 questions with known-correct SQL, scored by
+  comparing *results* (alias/order/float tolerant). Golden answers are re-derived independently in Python.
+  A careless "naive" model scores **14/26** and the report says exactly why (e.g. `missing [Smart Watch]`).
+- **Keyless demo mode** (`LLM_PROVIDER=replay`): answers the recorded questions with no API key.
+- **200 tests**, including the repair loop (scripted fake LLM against real Postgres), a
+  prompt-injection test proving destructive SQL never runs, and a database-integrity check around every eval run.
+
+## Evaluate a model
+
+```bash
+make eval         # offline replay of the reference recording -> 26/26
+make eval-naive   # a careless model -> 14/26, with the reasons
+make eval-live    # your real LLM (needs LLM_API_KEY)
+```
 
 ## Tests
 
