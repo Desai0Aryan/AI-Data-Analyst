@@ -3,13 +3,27 @@
 Ask a business question in plain English. The system writes SQL, checks it, runs it against
 PostgreSQL in a locked-down read-only session, and (coming in later parts) draws a chart and explains the answer.
 
-> **Status: Part 3 of 5 complete** (secure foundation + LLM text-to-SQL with a repair loop + evaluation suite). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+> **Status: Part 4 of 5 complete** (secure foundation + LLM text-to-SQL with a repair loop + evaluation suite + React UI). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+![Verity answering the headline question, with proof](docs/screenshots/03-answer-and-proof.png)
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/02-pipeline-live.png" alt="The query traveling through the live pipeline"></td>
+<td width="50%"><img src="docs/screenshots/04-prompt-injection.png" alt="A prompt injection stopped by the guard"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/05-evaluation.png" alt="Evaluation dashboard"></td>
+<td><img src="docs/screenshots/06-security-lab.png" alt="Security lab"></td>
+</tr>
+</table>
 
 ## Quick start
 
 ```bash
 cp .env.example .env        # then set LLM_API_KEY (or LLM_PROVIDER=replay for a keyless demo)
 docker compose up -d --build
+open http://localhost:3000            # the app
 open http://localhost:8000/docs       # interactive API docs
 ```
 
@@ -53,7 +67,11 @@ curl -s 'localhost:8000/api/schema?prompt=true' | python -m json.tool
   comparing *results* (alias/order/float tolerant). Golden answers are re-derived independently in Python.
   A careless "naive" model scores **14/26** and the report says exactly why (e.g. `missing [Smart Watch]`).
 - **Keyless demo mode** (`LLM_PROVIDER=replay`): answers the recorded questions with no API key.
-- **200 tests**, including the repair loop (scripted fake LLM against real Postgres), a
+- **A React UI** ([docs/FRONTEND.md](docs/FRONTEND.md)): a live pipeline where the query visibly travels, gets
+  stamped at each station and loops back when the guard rejects it; charts chosen from the shape of the result;
+  a proof column (known-answer verdict, safety checks, attempt trace); an evaluation dashboard; a security lab
+  that attacks each defense layer on its own; and a schema map.
+- **301 tests** (237 backend, 64 frontend), including the repair loop (scripted fake LLM against real Postgres), a
   prompt-injection test proving destructive SQL never runs, and a database-integrity check around every eval run.
 
 ## Evaluate a model
@@ -73,4 +91,4 @@ make test
 
 ## Tech
 
-Python 3.12, FastAPI, PostgreSQL 16, psycopg 3, SQLGlot, httpx, Docker. (React + evals in later parts.)
+Python 3.12, FastAPI, PostgreSQL 16, psycopg 3, SQLGlot, httpx, React 19, TypeScript, Vite, Tailwind, Recharts, Framer Motion, Docker.

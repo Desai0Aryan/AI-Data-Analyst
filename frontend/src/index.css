@@ -1,0 +1,75 @@
+@import "tailwindcss";
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/spline-sans-mono";
+
+/* Verity design tokens. Every accent carries one fixed meaning, wherever it appears:
+   signal = running / selected, verified = correct and safe, blocked = refused,
+   repaired = recovered after a retry. */
+@theme {
+  --font-sans: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Spline Sans Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --color-page: #141735;
+  --color-surface: #1b1f48;
+  --color-raised: #242a5c;
+  --color-sunken: #10132c;
+  --color-line: #353c7d;
+  --color-text: #eef0ff;
+  --color-muted: #a3aadc;
+  --color-faint: #6d75ad;
+
+  --color-signal: #8fa2ff;
+  --color-verified: #4de0a5;
+  --color-blocked: #ff6b7a;
+  --color-repaired: #ffc857;
+
+  --color-series-1: #8fa2ff;
+  --color-series-2: #4de0a5;
+  --color-series-3: #ffc857;
+  --color-series-4: #ff8fc7;
+  --color-series-5: #5fd0ff;
+  --color-series-6: #c3a0ff;
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--color-page);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  /* a quiet dot grid: structure, not decoration */
+  background-image: radial-gradient(rgba(143, 162, 255, 0.11) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-attachment: fixed;
+}
+
+::selection { background: rgba(143, 162, 255, 0.35); }
+@layer base {
+  :focus-visible { outline: 2px solid var(--color-signal); outline-offset: 2px; border-radius: 6px; }
+}
+
+.tnum { font-variant-numeric: tabular-nums; }
+.scroll-thin { scrollbar-width: thin; scrollbar-color: var(--color-line) transparent; }
+
+/* SQL syntax colors reuse the semantic palette sparingly */
+.sql-kw { color: var(--color-signal); font-weight: 600; }
+.sql-fn { color: var(--color-series-5); }
+.sql-str { color: var(--color-repaired); }
+.sql-num { color: var(--color-series-4); }
+.sql-com { color: var(--color-faint); font-style: italic; }
+.sql-op { color: var(--color-muted); }
+
+@keyframes packet-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(143,162,255,.55); } 50% { box-shadow: 0 0 0 9px rgba(143,162,255,0); } }
+@keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
+@keyframes caret { 50% { opacity: 0; } }
+.packet-pulse { animation: packet-pulse 1.4s ease-out infinite; }
+.shake { animation: shake .42s ease-in-out; }
+.caret::after { content: ""; display: inline-block; width: 7px; height: 1.05em; margin-left: 2px; background: var(--color-signal); vertical-align: -2px; animation: caret 1s steps(1) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .packet-pulse, .shake, .caret::after { animation: none; }
+  * { scroll-behavior: auto !important; }
+}

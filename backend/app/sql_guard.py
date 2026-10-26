@@ -74,6 +74,7 @@ class GuardResult:
     effective_limit: int          # LIMIT that will be applied
     limit_applied: bool           # True if we added or lowered the LIMIT
     warnings: list[str] = field(default_factory=list)
+    pretty_sql: str = ""          # same query, multi-line, for display only (never executed)
 
 
 _RENDERED_NAME = re.compile(r"^\s*\"?([A-Za-z_][A-Za-z0-9_$.]*)\"?\s*\(")
@@ -188,6 +189,7 @@ def validate_sql(sql: str, allowed_tables: set[str], max_rows: int = 1000) -> Gu
 
     return GuardResult(
         sql=tree.sql(dialect=DIALECT, comments=False),
+        pretty_sql=tree.sql(dialect=DIALECT, comments=False, pretty=True),
         tables=sorted(referenced),
         effective_limit=limit,
         limit_applied=changed,

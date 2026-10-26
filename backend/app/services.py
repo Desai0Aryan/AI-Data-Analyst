@@ -46,10 +46,9 @@ def guard_sql(sql: str) -> GuardResult:
         raise QueryFailure("guard", e.code, e.message, 422) from e
 
 
-def run_sql(sql: str) -> tuple[GuardResult, db.QueryResult]:
-    guarded = guard_sql(sql)
+def execute_guarded(guarded: GuardResult) -> db.QueryResult:
     try:
-        result = db.execute_readonly(
+        return db.execute_readonly(
             guarded.sql,
             effective_limit=guarded.effective_limit,
             limit_applied=guarded.limit_applied,
@@ -67,4 +66,8 @@ def run_sql(sql: str) -> tuple[GuardResult, db.QueryResult]:
         # Postgres' own message ('column "x" does not exist', 'division by zero', ...) is
         # exactly the feedback an LLM needs to repair the query.
         raise QueryFailure("database", "db_error", str(e).splitlines()[0], 400) from e
-    return guarded, result
+
+
+def run_sql(sql: str) -> tuple[GuardResult, db.QueryResult]:
+    guarded = guard_sql(sql)
+    return guarded, execute_guarded(guarded)
