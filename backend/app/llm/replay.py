@@ -29,6 +29,8 @@ def _question_of(messages: list[dict[str, str]]) -> str:
 
 
 class ReplayLLM:
+    supports_explain = False      # recordings only hold SQL replies; summaries fall back to rule-based text
+
     def __init__(self, answers: dict[str, list[str]], model: str = "replay"):
         self.model = model
         self._answers = {normalize_question(q): replies for q, replies in answers.items()}
@@ -61,6 +63,7 @@ class RecordingLLM:
     def __init__(self, inner: LLMClient):
         self.inner = inner
         self.model = getattr(inner, "model", "unknown")
+        self.supports_explain = getattr(inner, "supports_explain", True)
         self.answers: dict[str, list[str]] = {}
 
     def complete(self, system: str, messages: list[dict[str, str]]) -> str:

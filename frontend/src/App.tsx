@@ -37,6 +37,8 @@ const HINTS: Record<string, string> = {
   not_configured: "Set LLM_API_KEY in your .env file, or set LLM_PROVIDER=replay to use the recorded demo.",
   unreachable: "Start the backend (docker compose up -d, or uvicorn app.main:app) and try again.",
   unavailable: "Postgres isn't reachable. Check the db container.",
+  rate_limited: "This demo limits how fast questions can be asked. Wait a few seconds and try again.",
+  budget_exhausted: "The daily question budget for this demo is used up. Run it locally, or use the keyless demo mode.",
 };
 
 export default function App() {
@@ -117,7 +119,7 @@ export default function App() {
               </Panel>
             )}
 
-            {state.result && <Results r={state.result} meta={meta} onOpenInLab={openInLab} />}
+            {state.result && <Results r={state.result} meta={meta} explanation={state.explanation} explaining={state.explaining} onOpenInLab={openInLab} />}
 
             {state.phase === "idle" && (
               <p className="flex items-center gap-2 text-sm text-faint"><Database size={15} />Pick an example or type your own. The red one is a prompt-injection attempt: watch the guard refuse it.</p>

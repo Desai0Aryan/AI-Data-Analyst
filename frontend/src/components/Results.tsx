@@ -1,6 +1,7 @@
 import { ChartColumn, CircleAlert, Code, Table2 } from "lucide-react";
 import { Suspense, lazy, useEffect, useState } from "react";
-import type { AskResult, Meta } from "../lib/types";
+import type { AskResult, Explanation, Meta } from "../lib/types";
+import { ExplanationCard } from "./ExplanationCard";
 import { DataTable } from "./DataTable";
 import { ProofPanel } from "./ProofPanel";
 import { SqlPanel, lastWritten } from "./SqlPanel";
@@ -11,7 +12,9 @@ const ChartPanel = lazy(() => import("./ChartPanel").then((m) => ({ default: m.C
 
 type Tab = "chart" | "table" | "sql";
 
-export function Results({ r, meta, onOpenInLab }: { r: AskResult; meta: Meta | null; onOpenInLab: (sql: string) => void }) {
+export function Results({ r, meta, explanation, explaining, onOpenInLab }: {
+  r: AskResult; meta: Meta | null; explanation: Explanation | null; explaining: boolean; onOpenInLab: (sql: string) => void;
+}) {
   const [tab, setTab] = useState<Tab>("chart");
   useEffect(() => { setTab(r.chart?.type === "table" ? "table" : "chart"); }, [r]);
   const ok = r.status === "ok" && r.chart;
@@ -27,6 +30,7 @@ export function Results({ r, meta, onOpenInLab }: { r: AskResult; meta: Meta | n
                 <Badge className="tnum">{r.row_count.toLocaleString("en-US")} {r.row_count === 1 ? "row" : "rows"}</Badge>
                 <Badge className="tnum">{r.elapsed_ms} ms</Badge>
                 {r.model && <Badge className="font-mono">{r.model}</Badge>}
+                {r.cached && <Badge tone="signal" title="Reused a recent identical answer, so no model call was made">Cached</Badge>}
                 {r.warnings.filter((w) => !w.startsWith("LIMIT")).map((w) => <Badge key={w} tone="repaired">{w}</Badge>)}
               </div>
             )}
@@ -39,6 +43,8 @@ export function Results({ r, meta, onOpenInLab }: { r: AskResult; meta: Meta | n
             ]} />
           )}
         </div>
+
+        {ok && <ExplanationCard explanation={explanation} pending={explaining} />}
 
         {ok ? (
           <>

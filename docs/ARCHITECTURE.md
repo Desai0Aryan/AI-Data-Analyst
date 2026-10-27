@@ -15,12 +15,14 @@ Parts 1-2 implement everything up to and including the repair loop. Charts and e
 
 | # | Layer | Where | Stops |
 |---|-------|-------|-------|
-| 1 | AST allow-list guard | `app/sql_guard.py` | writes, DDL, multi-statement, data-modifying CTEs, `SELECT INTO`, dangerous functions, system catalogs, unbounded results |
-| 2 | Regenerated SQL | `validate_sql` returns SQL rebuilt from the AST | comment/formatting tricks, parser-differential tricks |
-| 3 | Read-only transaction + timeout | `app/db.py` | accidental writes, runaway queries |
-| 4 | Least-privilege role | `db/init/03_readonly_role.sh` | everything, even if layers 1-3 had a bug (SELECT-only, 5s timeout, conn limit) |
+| 1 | AST allow-list guard (the executed SQL is *regenerated from the AST*, never the model's text) | `app/sql_guard.py` | writes, DDL, stacked statements, data-modifying CTEs, `SELECT INTO`, dangerous functions, system catalogs, unbounded results, comment tricks |
+| 2 | Read-only transaction (always rolled back) | `app/db.py` | accidental or injected writes that slip past the guard |
+| 3 | Statement timeout | `app/db.py` + role setting | runaway queries (accidental cross joins) |
+| 4 | Least-privilege role (`analyst_ro`: SELECT only, connection limit) | `db/init/03_readonly_role.sh` | everything, even if layers 1-3 had a bug |
 
-Tests prove layers 3 and 4 hold *without* layer 1 (see `test_api_integration.py`).
+Each layer is tested to hold **without** the one before it (`tests/test_api_integration.py`), and the Security lab
+page attacks layers 1, 2, 4 and 3 individually via `POST /api/security/probe` (fixed server-side statements that
+match no rows, run as the SELECT-only role).
 
 ## Why SQLGlot and not regex?
 
@@ -57,6 +59,29 @@ returned so the UI can show the trace.
 **Prompt injection:** the question is untrusted input, but it can only influence *which SELECT* is
 written. Destructive SQL is stopped by the four security layers (tested with a hostile "drop every table" prompt).
 
+## Written explanations (`app/explain.py`)
+
+Every answer gets a short summary. An LLM summary can state a figure that is not in the data, so each one is
+**grounded**: every number it mentions must appear in the result or be simple arithmetic on it (a total, a
+difference between rows, a percentage change, a share of total). A failing summary is returned to the model once with
+the offending figures named; if it fails again, a deterministic rule-based summary replaces it. A summary problem can
+never block or corrupt the answer.
+
+Tolerances follow the precision the text uses ("$12.9K" matches 12,934 within 50; "$5,900" is a fair rounding of
+5,942.70 but "$50,000" is not a rounding of 49,438.80). Years near the dataset's reference date are treated as labels.
+Grounding is a *numeric* guarantee only; the prompt separately forbids speculating about causes.
+
+In streaming mode the result is sent first and the summary arrives in a later `explanation` event.
+
+## Cost and abuse protection (`app/cache.py`, `app/limits.py`)
+
+- **Cache:** identical question + model + reference date reuses the answer (TTL, bounded size). Only `ok` and
+  `cannot_answer` outcomes are cached; failures are retried. The free replay provider is never cached.
+- **Rate limit:** per-client sliding window on model-backed endpoints (and lighter ones on DB-only endpoints).
+  `X-Forwarded-For` is trusted only when `TRUST_PROXY=true`.
+- **Daily budget:** a global cap on model-backed requests per UTC day, skipped for the free replay provider.
+- All three are in memory and per process; a limit of 0 disables it.
+
 ## Dataset
 
 Deterministic e-commerce data (no `random()`), so evaluation answers are stable.
@@ -73,4 +98,4 @@ excluded from revenue.
 - [x] Part 2: LLM text-to-SQL, validation-and-repair loop, `/api/ask`
 - [x] Part 3: Evaluation suite (generated SQL vs known answers), replay/record LLM, CI gate
 - [x] Part 4: React frontend (live pipeline, SQL inspector, charts, eval + security pages), SSE streaming
-- [ ] Part 5: Polish: written explanations, README demo, CI for evals
+- [x] Part 5: Grounded written explanations, response cache, rate limiting + daily budget, docs

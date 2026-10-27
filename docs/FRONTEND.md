@@ -1,6 +1,6 @@
 # Frontend (Verity)
 
-React 19 + TypeScript + Vite, Tailwind v4, Recharts, Framer Motion. 64 tests (Vitest + Testing Library).
+React 19 + TypeScript + Vite, Tailwind v4, Recharts, Framer Motion. 77 tests (Vitest + Testing Library).
 
 ![The answer, with proof](screenshots/03-answer-and-proof.png)
 
@@ -39,6 +39,13 @@ POST /api/ask/stream  --SSE-->  parseSSE()  -->  Pacer  -->  pipelineReducer  --
 
 nginx is configured with `proxy_buffering off` for `/api/`; with buffering on, the browser would receive the
 whole stream at the end.
+
+## Summaries
+
+The answer panel opens with a written summary. In streaming mode it shows a skeleton ("Writing a summary, then
+checking every figure against the result...") while the result is already usable, then fills in. Figures are
+highlighted, and a footer says either *"Written by the model. N figures checked against the result"* or
+*"Rule-based summary (no model involved)"*, so the UI never overstates what was verified.
 
 ## Charts come from the data
 

@@ -30,6 +30,16 @@ class Settings(BaseSettings):
     # Total SQL generation attempts per question (1 initial + repairs).
     max_attempts: int = 3
 
+    # --- written explanations ---
+    explanations_enabled: bool = True
+
+    # --- cost and abuse protection (0 disables a limit) ---
+    cache_ttl_s: int = 900                   # identical question + model + reference date -> reuse the answer
+    cache_max_entries: int = 256
+    rate_limit_per_minute: int = 30          # per client, for LLM-backed endpoints
+    daily_llm_budget: int = 500              # LLM-backed requests per UTC day across all clients
+    trust_proxy: bool = False                # read the client IP from X-Forwarded-For (only behind your own proxy)
+
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
 

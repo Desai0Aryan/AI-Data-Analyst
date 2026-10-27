@@ -4,6 +4,7 @@ import { toCSV } from "../csv";
 import { compact, formatCell, formatNumber, humanize, numberKind, plural } from "../format";
 import { clearHistory, loadHistory, pushHistory } from "../history";
 import { Pacer } from "../pacer";
+import { segmentFigures } from "../explain";
 import { parseSSE } from "../sse";
 import { foreignKeys, layers, placeTables, primaryKey } from "../schemaLayout";
 import { tokenizeSql } from "../sqlHighlight";
@@ -184,4 +185,19 @@ describe("history", () => {
     localStorage.setItem("verity.history.v1", "{not json");
     expect(loadHistory()).toEqual([]);
   });
+});
+
+describe("segmentFigures", () => {
+  const figs = (t: string) => segmentFigures(t).filter((s) => s.figure).map((s) => s.text);
+  it("finds money, percentages, compact and plain numbers", () => {
+    expect(figs("Down $12,934.38 (89.3%), about -$12.9K, 3 products")).toEqual(["$12,934.38", "89.3%", "-$12.9K", "3"]);
+  });
+  it("leaves labels like Q4 alone", () => {
+    expect(figs("In Q4 the B2B segment grew 5%")).toEqual(["5%"]);
+  });
+  it("round-trips the exact text", () => {
+    const t = "Revenue was $1,200, then 300.";
+    expect(segmentFigures(t).map((s) => s.text).join("")).toBe(t);
+  });
+  it("handles text with no figures", () => { expect(segmentFigures("Nothing here.")).toEqual([{ text: "Nothing here.", figure: false }]); });
 });

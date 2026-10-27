@@ -10,7 +10,7 @@ const status = (s: PipelineState) => Object.fromEntries(Object.entries(s.station
 const base: AskResult = {
   status: "ok", question: "q", sql: "SELECT 1", pretty_sql: "SELECT 1", tables: ["orders"], columns: [], rows: [], row_count: 3,
   truncated: false, elapsed_ms: 4.2, effective_limit: 1000, limit_applied: true, warnings: [], attempts: [], message: null,
-  model: "m", chart: null, verification: null,
+  model: "m", chart: null, verification: null, explanation: null, explanation_pending: false, cached: false,
 };
 const attempt = (n: number, outcome: any) => ({ number: n, sql: "x", outcome, detail: null, raw_sql: "x" });
 
@@ -118,6 +118,37 @@ describe("pipelineReducer", () => {
     const s = play([{ type: "error", stage: "llm", code: "not_configured", message: "no key" }]);
     expect(s.phase).toBe("error");
     expect(s.error).toEqual({ stage: "llm", code: "not_configured", message: "no key" });
+  });
+
+  it("waits for the summary after the result, then fills it in", () => {
+    const exp = { text: "Sales fell.", source: "llm" as const, grounded: true, numbers_checked: 0, retried: false, ungrounded: [] };
+    const waiting = play([{ type: "result", data: { ...base, attempts: [attempt(1, "ok")], explanation_pending: true } }], play(happy));
+    expect(waiting.phase).toBe("done");
+    expect(waiting.explaining).toBe(true);
+    expect(waiting.explanation).toBeNull();
+    const done = play([{ type: "explanation", data: exp }], waiting);
+    expect(done.explaining).toBe(false);
+    expect(done.explanation).toEqual(exp);
+    expect(done.result).toBe(waiting.result);                 // the answer itself is untouched
+  });
+
+  it("shows a summary delivered with the result (non-streaming or cached answers)", () => {
+    const exp = { text: "Cached.", source: "template" as const, grounded: true, numbers_checked: 0, retried: false, ungrounded: [] };
+    const s = play([{ type: "result", data: { ...base, attempts: [attempt(1, "ok")], explanation: exp, cached: true } }]);
+    expect(s.explaining).toBe(false);
+    expect(s.explanation).toEqual(exp);
+  });
+
+  it("a failed summary (null) simply clears the pending state", () => {
+    const waiting = play([{ type: "result", data: { ...base, attempts: [attempt(1, "ok")], explanation_pending: true } }]);
+    expect(play([{ type: "explanation", data: null }], waiting)).toMatchObject({ explaining: false, explanation: null });
+  });
+
+  it("clears the previous summary when a new question begins", () => {
+    const exp = { text: "x", source: "llm" as const, grounded: true, numbers_checked: 0, retried: false, ungrounded: [] };
+    const s = pipelineReducer({ ...initialState, explanation: exp, explaining: true }, { type: "begin", question: "next" });
+    expect(s.explanation).toBeNull();
+    expect(s.explaining).toBe(false);
   });
 
   it("resets", () => { expect(pipelineReducer(play(happy), { type: "reset" })).toEqual(initialState); });

@@ -31,6 +31,12 @@ services:
       LLM_REPLAY_FILE: ${LLM_REPLAY_FILE:-evals/recordings/reference.json}
       LLM_BASE_URL: ${LLM_BASE_URL:-}
       MAX_ATTEMPTS: ${MAX_ATTEMPTS:-3}
+      EXPLANATIONS_ENABLED: ${EXPLANATIONS_ENABLED:-true}
+      CACHE_TTL_S: ${CACHE_TTL_S:-900}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-30}
+      DAILY_LLM_BUDGET: ${DAILY_LLM_BUDGET:-500}
+      # nginx (the frontend container) sets X-Forwarded-For. Only trust it because nginx is the sole public entry point.
+      TRUST_PROXY: ${TRUST_PROXY:-true}
     depends_on:
       db:
         condition: service_healthy

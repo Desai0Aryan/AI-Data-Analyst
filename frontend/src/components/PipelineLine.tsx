@@ -73,7 +73,7 @@ export function PipelineLine({ state }: { state: PipelineState }) {
         />
 
         {/* the query, travelling */}
-        {state.phase !== "idle" && (
+        {(state.phase === "running" || (state.phase !== "idle" && state.draftSql)) && (
           <motion.div
             className="absolute top-[62px] z-10"
             style={{ transform: `translate(-${(packetIndex / (STATION_ORDER.length - 1)) * 100}%, -52px)` }}   // anchored so it never leaves the panel

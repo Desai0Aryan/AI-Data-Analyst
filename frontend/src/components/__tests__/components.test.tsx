@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AskBar } from "../AskBar";
 import { ChartPanel } from "../ChartPanel";
 import { DataTable } from "../DataTable";
+import { ExplanationCard } from "../ExplanationCard";
 import { PipelineLine } from "../PipelineLine";
 import { AttemptTrace, GuardChecklist, VerificationCard } from "../ProofPanel";
 import { SqlPanel } from "../SqlPanel";
@@ -220,5 +221,36 @@ describe("SqlPanel", () => {
     render(<SqlPanel executed="SELECT 1" written={null} tables={[]} limitApplied={false} limit={null} onOpenInLab={open} />);
     await userEvent.click(screen.getByRole("button", { name: /edit in sql lab/i }));
     expect(open).toHaveBeenCalledWith("SELECT 1");
+  });
+});
+
+describe("ExplanationCard", () => {
+  const base = { grounded: true, retried: false, ungrounded: [] as string[] };
+  it("shows a skeleton and an honest status while the summary is written", () => {
+    render(<ExplanationCard explanation={null} pending />);
+    expect(screen.getByRole("status", { name: /writing a summary/i })).toBeInTheDocument();
+    expect(screen.getByText(/checking every figure/i)).toBeInTheDocument();
+  });
+  it("highlights figures and says how many were checked", () => {
+    render(<ExplanationCard pending={false} explanation={{ ...base, source: "llm", numbers_checked: 2, text: "Earbuds fell $12,934.38 in Q4, a 89.3% drop." }} />);
+    const fig = screen.getByText("$12,934.38");
+    expect(fig.tagName).toBe("SPAN");
+    expect(fig).toHaveClass("font-mono");
+    expect(screen.getByText("Q4", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText(/2 figures checked against the result/i)).toBeInTheDocument();
+  });
+  it("notes when the model had to correct itself", () => {
+    render(<ExplanationCard pending={false} explanation={{ ...base, source: "llm", numbers_checked: 1, retried: true, text: "Sales fell $5." }} />);
+    expect(screen.getByText(/1 figure checked.*corrected once/i)).toBeInTheDocument();
+  });
+  it("labels rule-based summaries as such, and explains a fallback", () => {
+    const { rerender } = render(<ExplanationCard pending={false} explanation={{ ...base, source: "template", numbers_checked: 1, text: "Total is $5." }} />);
+    expect(screen.getByText(/rule-based summary \(no model involved\)/i)).toBeInTheDocument();
+    rerender(<ExplanationCard pending={false} explanation={{ ...base, source: "template", retried: true, numbers_checked: 1, text: "Total is $5." }} />);
+    expect(screen.getByText(/contained a figure that is not in the data/i)).toBeInTheDocument();
+  });
+  it("renders nothing when there is no summary", () => {
+    const { container } = render(<ExplanationCard explanation={null} pending={false} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

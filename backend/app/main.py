@@ -27,13 +27,14 @@ from typing import Any, Literal
 import psycopg
 import psycopg.errors
 import psycopg_pool.errors
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from . import db, known_answers, pipeline, services
+from . import cache, db, known_answers, limits, pipeline, services
 from .charts import recommend_chart
+from .explain import explain_result
 from .config import get_settings
 from .llm import LLMClient, LLMError, LLMNotConfigured, ReplayLLM, get_llm
 from .schema import get_schema
@@ -116,6 +117,9 @@ class AskResponse(BaseModel):
     model: str | None = None
     chart: dict[str, Any] | None = None
     verification: dict[str, Any] | None = None
+    explanation: dict[str, Any] | None = None
+    explanation_pending: bool = False     # streaming: the summary arrives in a later event
+    cached: bool = False
 
 
 class EvalRunRequest(BaseModel):
@@ -154,6 +158,28 @@ def _http_error(f: services.QueryFailure) -> HTTPException:
     return HTTPException(status_code=f.http_status, detail={"stage": f.stage, "code": f.code, "message": f.message})
 
 
+def _explain(resp: AskResponse, llm: LLMClient) -> dict[str, Any] | None:
+    if resp.status != "ok" or not get_settings().explanations_enabled:
+        return None
+    return explain_result(resp.question, resp.columns, resp.rows, resp.chart, resp.truncated, llm,
+                          today=get_settings().reference_date).to_dict()
+
+
+def _cache_key(question: str, llm: LLMClient) -> str | None:
+    """None = caching is off. The free replay provider is never cached: it costs nothing, and the
+    live pipeline is the whole point of the demo."""
+    s = get_settings()
+    if s.cache_ttl_s <= 0 or s.llm_provider.lower() == "replay":
+        return None
+    return cache.cache_key(question, getattr(llm, "model", ""), s.reference_date)
+
+
+def _remember(key: str | None, resp: AskResponse) -> None:
+    s = get_settings()
+    if key and resp.status in {"ok", "cannot_answer"}:                 # never cache a failure
+        cache.answers.set(key, resp.model_dump(), s.cache_ttl_s, s.cache_max_entries)
+
+
 # ---------------------------------------------------------------- basics
 
 @app.get("/api/health")
@@ -173,6 +199,9 @@ def meta():
         "max_rows": s.max_rows,
         "statement_timeout_ms": s.statement_timeout_ms,
         "max_attempts": s.max_attempts,
+        "explanations_enabled": s.explanations_enabled,
+        "cache_ttl_s": s.cache_ttl_s,
+        "rate_limit_per_minute": s.rate_limit_per_minute,
         "examples": [{"id": c.id, "question": c.question, "category": c.category, "expect": c.expect}
                      for c in CASES],
     }
@@ -200,7 +229,7 @@ def validate(req: SQLRequest):
     return {"sql": r.sql, "tables": r.tables, "effective_limit": r.effective_limit, "warnings": r.warnings}
 
 
-@app.post("/api/sql/execute")
+@app.post("/api/sql/execute", dependencies=[Depends(limits.guard_cheap("sql", 60))])
 def execute(req: SQLRequest):
     """Validate, then execute read-only with a timeout and row cap."""
     try:
@@ -225,25 +254,45 @@ def execute(req: SQLRequest):
 
 # ---------------------------------------------------------------- AI
 
-@app.post("/api/ask", response_model=AskResponse)
+@app.post("/api/ask", response_model=AskResponse, dependencies=[Depends(limits.guard_llm)])
 def ask(req: AskRequest, llm: LLMClient = Depends(get_llm)):
-    """Natural language -> SQL -> guarded execution -> validated result.
+    """Natural language -> SQL -> guarded execution -> validated result -> checked summary.
 
     Always returns HTTP 200 for the pipeline's own outcomes (``status`` says ok / failed /
     cannot_answer) so a client can render the full attempt trace either way.
     """
-    return _build_ask_response(pipeline.answer_question(req.question.strip(), llm), llm)
+    question = req.question.strip()
+    key = _cache_key(question, llm)
+    if key and (hit := cache.answers.get(key)) is not None:
+        return {**hit, "cached": True}
+    resp = _build_ask_response(pipeline.answer_question(question, llm), llm)
+    resp.explanation = _explain(resp, llm)
+    _remember(key, resp)
+    return resp
 
 
-@app.post("/api/ask/stream")
+@app.post("/api/ask/stream", dependencies=[Depends(limits.guard_llm)])
 def ask_stream(req: AskRequest, llm: LLMClient = Depends(get_llm)):
-    """Server-sent events: one JSON event per pipeline step, then a final ``result`` event."""
+    """Server-sent events: one JSON event per pipeline step, then ``result``, then ``explanation``."""
     events: queue.Queue[dict | None] = queue.Queue()
+    question = req.question.strip()
+    key = _cache_key(question, llm)
 
     def worker():
         try:
-            out = pipeline.answer_question(req.question.strip(), llm, on_event=events.put)
-            events.put({"type": "result", "data": _build_ask_response(out, llm).model_dump()})
+            if key and (hit := cache.answers.get(key)) is not None:
+                events.put({"type": "start", "question": question, "max_attempts": get_settings().max_attempts})
+                events.put({"type": "result", "data": {**hit, "cached": True}})
+                return
+            out = pipeline.answer_question(question, llm, on_event=events.put)
+            resp = _build_ask_response(out, llm)
+            resp.explanation_pending = resp.status == "ok" and get_settings().explanations_enabled
+            events.put({"type": "result", "data": resp.model_dump()})
+            if resp.explanation_pending:
+                resp.explanation = _explain(resp, llm)
+                resp.explanation_pending = False
+                events.put({"type": "explanation", "data": resp.explanation})
+            _remember(key, resp)
         except LLMNotConfigured as e:
             events.put({"type": "error", "stage": "llm", "code": "not_configured", "message": str(e)})
         except LLMError as e:
@@ -278,7 +327,7 @@ def eval_cases():
              "ordered": c.ordered, "trap": c.trap, "golden_sql": c.golden_sql} for c in CASES]
 
 
-@app.post("/api/evals/run")
+@app.post("/api/evals/run", dependencies=[Depends(limits.guard_cheap("eval", 6))])
 def eval_run(req: EvalRunRequest):
     """Run the suite offline against a recorded model. Only whitelisted recordings: this endpoint
     can never trigger paid LLM calls."""
@@ -303,7 +352,7 @@ _PROBES = {
 }
 
 
-@app.post("/api/security/probe")
+@app.post("/api/security/probe", dependencies=[Depends(limits.guard_cheap("probe", 30))])
 def security_probe(req: ProbeRequest):
     """Demonstrate each defense layer *on its own*, with fixed server-side statements.
 

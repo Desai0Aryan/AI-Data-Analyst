@@ -1,4 +1,4 @@
-import type { AskResult, PipelineEvent } from "./types";
+import type { AskResult, Explanation, PipelineEvent } from "./types";
 
 export type StationId = "ask" | "write" | "guard" | "run" | "verify";
 export const STATION_ORDER: StationId[] = ["ask", "write", "guard", "run", "verify"];
@@ -16,6 +16,8 @@ export type PipelineState = {
   loops: Loop[];
   draftSql: string | null;
   result: AskResult | null;
+  explanation: Explanation | null;
+  explaining: boolean;           // the summary is still being written
   error: { stage: string; code: string; message: string } | null;
 };
 
@@ -29,7 +31,7 @@ const idle = (): Record<StationId, Station> => ({
 
 export const initialState: PipelineState = {
   phase: "idle", question: "", attempt: 0, maxAttempts: 3, stations: idle(), packetAt: "ask",
-  loops: [], draftSql: null, result: null, error: null,
+  loops: [], draftSql: null, result: null, explanation: null, explaining: false, error: null,
 };
 
 export type Action = { type: "reset" } | { type: "begin"; question: string } | { type: "event"; event: PipelineEvent };
@@ -82,11 +84,13 @@ export function pipelineReducer(state: PipelineState, action: Action): PipelineS
       return set(s, "write", "blocked", "Reply had no SQL");
     case "cannot_answer":
       return set(s, "write", "blocked", `Declined: ${short(e.reason, 40)}`);
+    case "explanation":
+      return { ...s, explanation: e.data, explaining: false };
     case "error":
-      return { ...s, phase: "error", error: { stage: e.stage, code: e.code, message: e.message } };
+      return { ...s, phase: "error", explaining: false, error: { stage: e.stage, code: e.code, message: e.message } };
     case "result": {
       const r = e.data;
-      s = { ...s, phase: "done", result: r };
+      s = { ...s, phase: "done", result: r, explanation: r.explanation ?? null, explaining: r.explanation_pending };
       if (r.status === "ok") {
         const repaired = r.attempts.length > 1;
         s = set(s, "write", repaired ? "repaired" : "done", repaired ? `Recovered after ${r.attempts.length - 1} repair${r.attempts.length > 2 ? "s" : ""}` : "SQL written");
@@ -114,7 +118,7 @@ export function pipelineReducer(state: PipelineState, action: Action): PipelineS
 export function delayFor(e: PipelineEvent, reduceMotion = false): number {
   const base: Partial<Record<PipelineEvent["type"], number>> = {
     start: 350, attempt_start: 450, sql: 1100, guard: 850, database_error: 950, executed: 800,
-    checks: 600, repair: 900, no_sql: 700, cannot_answer: 900, result: 0, error: 0,
+    checks: 600, repair: 900, no_sql: 700, cannot_answer: 900, result: 0, explanation: 0, error: 0,
   };
   const ms = base[e.type] ?? 400;
   return reduceMotion ? Math.round(ms * 0.25) : ms;

@@ -37,6 +37,15 @@ export type Verification = {
   ordered?: boolean;
 };
 
+export type Explanation = {
+  text: string;
+  source: "llm" | "template";
+  grounded: boolean;
+  numbers_checked: number;
+  retried: boolean;
+  ungrounded: string[];
+};
+
 export type AskResult = {
   status: "ok" | "failed" | "cannot_answer";
   question: string;
@@ -56,6 +65,9 @@ export type AskResult = {
   model: string | null;
   chart: ChartSpec | null;
   verification: Verification | null;
+  explanation: Explanation | null;
+  explanation_pending: boolean;
+  cached: boolean;
 };
 
 export type SqlResult = {
@@ -87,6 +99,7 @@ export type PipelineEvent =
   | { type: "no_sql"; n: number }
   | { type: "cannot_answer"; n: number; reason: string }
   | { type: "result"; data: AskResult }
+  | { type: "explanation"; data: Explanation | null }
   | { type: "error"; stage: string; code: string; message: string };
 
 export type Meta = {
@@ -96,6 +109,9 @@ export type Meta = {
   max_rows: number;
   statement_timeout_ms: number;
   max_attempts: number;
+  explanations_enabled: boolean;
+  cache_ttl_s: number;
+  rate_limit_per_minute: number;
   examples: { id: string; question: string; category: string; expect: "match" | "refuse" }[];
 };
 
