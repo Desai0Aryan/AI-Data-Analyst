@@ -1,7 +1,5 @@
 # Verity: an AI data analyst that shows its work
 
-[![CI](https://github.com/YOUR_USERNAME/verity/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/verity/actions/workflows/ci.yml)
-
 Ask a business question in plain English. Verity writes the SQL, checks it, runs it against PostgreSQL in a
 locked-down read-only session, charts the result, writes a summary whose every figure is checked against the data,
 and **compares the answer with a known-correct one**.
