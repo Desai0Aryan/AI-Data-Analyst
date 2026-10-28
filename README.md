@@ -106,7 +106,8 @@ Details in [docs/EVALUATION.md](docs/EVALUATION.md).
 |---|---|---|
 | Replay: careful model | 26/26 | Validates the harness and pipeline, **not** a model |
 | Replay: careless model | 14/26 | Falls into 12 named traps; proves the harness can fail |
-| **Live: your model** | _run `make eval-live` and put your number here_ | The only run that measures a real model |
+
+**Live model result:** <!-- live-eval:start -->not run yet. Run `make eval-live` with your API key and this line fills itself in.<!-- live-eval:end -->
 
 ```bash
 make eval         # offline, free, deterministic
@@ -116,7 +117,7 @@ make eval-live    # your real LLM (needs LLM_API_KEY); saves a replayable record
 
 ## Tests
 
-**380 tests** (303 backend, 77 frontend), plus the 26-case evaluation gate in CI.
+**390 tests** (313 backend, 77 frontend), plus the 26-case evaluation gate in CI.
 
 ```bash
 docker compose up -d db && make test      # backend: unit + integration against real Postgres
@@ -152,11 +153,16 @@ make test-ui                              # frontend: typecheck, unit/component 
 ```
 backend/app/        FastAPI app: sql_guard, pipeline (repair loop), explain, charts, cache, limits, llm/
 backend/evals/      26 cases, comparator, runner, recordings, golden snapshot
-backend/tests/      303 tests
+backend/tests/      313 tests
 frontend/src/       React app: components/, lib/ (state machine, SSE, formatting), tests
 db/init/            schema, deterministic seed data, read-only role
 docs/               ARCHITECTURE, EVALUATION, FRONTEND, DEMO_SCRIPT, screenshots
 ```
+
+## Publishing your own copy
+
+`scripts/publish.sh "Your Name" your-github-username verity --push` fills in your details, refuses to commit
+anything secret-shaped, and creates the repo. See [docs/PUSH_TO_GITHUB.md](docs/PUSH_TO_GITHUB.md).
 
 ## Documentation
 

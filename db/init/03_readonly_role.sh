@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/bin/sh
 # Creates the least-privilege role the API connects as.
 # Defense in depth: even if the SQL guard were bypassed, this role cannot write.
-set -euo pipefail
+set -eu          # POSIX sh: the postgres:alpine image has no bash
 
 psql -v ON_ERROR_STOP=1 -v ro_password="${READONLY_PASSWORD}" \
      --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<'EOSQL'

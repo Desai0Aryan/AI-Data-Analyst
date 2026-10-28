@@ -1,50 +1,63 @@
-# Push to GitHub: checklist
+# Push to GitHub
 
-## Before you commit
-
-- [ ] Replace the placeholders: `grep -rn "YOUR_USERNAME\|YOUR NAME" .` (README badge, LICENSE).
-- [ ] Make sure no secrets are tracked: `.env` is git-ignored; only `.env.example` is committed. Run `git status` and
-      look for any `.env` file before the first commit.
-- [ ] Run everything once on your machine:
-  ```bash
-  docker compose up -d db && make test        # backend
-  make test-ui                                 # frontend
-  make eval                                    # offline evaluation gate
-  ```
-- [ ] Build and open the stack once: `docker compose up -d --build`, then http://localhost:3000.
-      (The Docker images and the CI workflow are the parts that could not be exercised before you received this project.)
-- [ ] Run `make eval-live` with your real key and put the score in the README's evaluation table.
-
-## Create the repository
+## The fast path (two commands)
 
 ```bash
-cd ai-data-analyst
-git init -b main
-git add .
-git status                 # sanity check: no .env, no node_modules
-git commit -m "Verity: AI data analyst that executes and verifies SQL"
-git remote add origin git@github.com:YOUR_USERNAME/verity.git
+# 1. Prove it works on your machine, with your own API key (a few cents; ~30-80 model calls)
+cp .env.example .env            # then set LLM_PROVIDER and LLM_API_KEY inside .env
+docker compose up -d db
+make eval-live                  # runs the 26 questions against your model, then writes the score into the README
+
+# 2. Fill in your name/username, run the safety checks, commit, create the GitHub repo and push
+gh auth login                   # once, if you haven't (https://cli.github.com)
+scripts/publish.sh "Your Name" your-github-username verity --push
+```
+
+`scripts/publish.sh` does the following, and stops if anything looks wrong:
+
+- fills in `YOUR NAME` / `YOUR_USERNAME` (README badge and LICENSE only)
+- refuses to continue if it finds an API-key-shaped string anywhere that would be committed
+- refuses to commit `.env`, `node_modules`, `dist` or `.zip` files
+- makes the first commit (uses a private `@users.noreply.github.com` address if git has no identity set)
+- with `--push`: creates a **public** repo, pushes, and sets the topics
+
+Run it **without** `--push` first if you want to inspect the commit, then push by hand:
+
+```bash
+git remote add origin git@github.com:<your-username>/verity.git
 git push -u origin main
 ```
 
-## On GitHub
+## What has and hasn't been verified
 
-- [ ] **Actions** tab: confirm the first CI run is green (backend tests + offline eval, frontend typecheck/tests/build).
-      If the backend job fails on login to Postgres, check `docker compose up --wait db` ran before the tests.
-- [ ] Add a description: *AI data analyst that writes SQL, runs it read-only, and verifies the answer against a known result.*
-- [ ] Add topics: `text-to-sql`, `llm`, `fastapi`, `react`, `postgresql`, `sqlglot`, `evaluation`, `ai-safety`.
-- [ ] Pin the repo to your profile. The first screenshot in the README is your thumbnail, so keep it current.
-- [ ] Optional: set the social preview image to `docs/screenshots/03-answer-and-proof.png`.
+Verified in the environment this was built in:
 
-## If you deploy a public demo
+- the full backend suite (313 tests) and frontend (77 tests, typecheck, production build), from a clean extraction
+- the database init files on a **brand-new** Postgres cluster: schema, seed, read-only role, all tests, and the evaluation gate pass
+- the real nginx config (syntax, SPA fallback, caching, security headers on every route, `X-Forwarded-For` overwriting,
+  events streamed 1 s apart), `docker compose config`, and the CI workflow with `actionlint`
+- the backend running with only the files its Dockerfile copies, as a non-root user
+- `scripts/publish.sh`, in throwaway copies (including secret detection and awkward names)
 
-- Use `LLM_PROVIDER=replay` for a free, safe public demo, or keep `DAILY_LLM_BUDGET` low with a real model.
-- Store `LLM_API_KEY` in your host's secret manager, not in the repo or an image.
-- Publish **only** the frontend port (nginx). Don't expose the API port while `TRUST_PROXY=true`.
-- Rotate the default database passwords from `.env.example`.
-- Remember the rate limit and budget are per process; run a single backend instance.
+**Not verified, so check these on your machine:**
+
+- [ ] `docker compose up -d --build` end to end: the base images could not be downloaded here, so the Dockerfiles
+      were never built. Then open http://localhost:3000.
+- [ ] The first GitHub Actions run is green (Actions tab). Two bugs in this area were already found and fixed
+      (a missing `bash` in the Postgres Alpine image, and a healthcheck that reported ready too early), so a
+      third is possible.
+- [ ] `make eval-live` against a real model. Until you run it, the only scores in the README are replay scores,
+      which validate the harness, not a model.
+
+## After pushing
+
+- [ ] Open the Actions tab and confirm CI is green.
+- [ ] Pin the repository to your profile.
+- [ ] Optional: Settings, Social preview: upload `docs/screenshots/03-answer-and-proof.png`.
+- [ ] If you add a public demo: use `LLM_PROVIDER=replay` (free, safe) or keep `DAILY_LLM_BUDGET` low; keep
+      `LLM_API_KEY` in your host's secret manager; publish only the nginx port (not 8000); rotate the default DB passwords.
 
 ## Talking about it
 
-See [DEMO_SCRIPT.md](DEMO_SCRIPT.md). The README's "Limitations" section is deliberate: naming your project's limits
-is a strength in an interview.
+See [DEMO_SCRIPT.md](DEMO_SCRIPT.md). The README's "Limitations" section is deliberate: naming a project's limits is a
+strength in an interview.

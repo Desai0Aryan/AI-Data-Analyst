@@ -30,5 +30,6 @@ eval:          ## Offline eval: replay the reference recording (validates harnes
 eval-naive:    ## Replay a careless model: the harness MUST report failures
 	cd backend && python -m evals.run --recording evals/recordings/naive.json
 
-eval-live:     ## Evaluate your real LLM (needs LLM_API_KEY); saves a replayable recording
-	cd backend && python -m evals.run --mode live --record evals/recordings/live.json --markdown eval-report.md
+eval-live:     ## Evaluate your real LLM (needs LLM_API_KEY); saves a replayable recording and updates the README score
+	cd backend && python -m evals.run --mode live --record evals/recordings/live.json --markdown eval-report.md --json eval-report.json
+	cd backend && python -m evals.readme_score eval-report.json

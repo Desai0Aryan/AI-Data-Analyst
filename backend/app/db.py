@@ -27,7 +27,8 @@ def get_pool() -> ConnectionPool:
         min_size=1,
         max_size=10,
         open=False,
-        kwargs={"autocommit": False},
+        # Always decode text as UTF-8. On an SQL_ASCII database psycopg would otherwise return bytes.
+        kwargs={"autocommit": False, "client_encoding": "UTF8"},
     )
     try:
         pool.open(wait=True, timeout=5)

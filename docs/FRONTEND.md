@@ -37,8 +37,10 @@ POST /api/ask/stream  --SSE-->  parseSSE()  -->  Pacer  -->  pipelineReducer  --
 4. `pipelineReducer` is a pure state machine (13 tests): it decides each station's status, caption and where the
    query packet is. The component only renders state.
 
-nginx is configured with `proxy_buffering off` for `/api/`; with buffering on, the browser would receive the
-whole stream at the end.
+nginx disables response buffering for `/api/`, and the API also sends `X-Accel-Buffering: no`, so each step reaches the
+browser as it happens. This was tested against a real nginx 1.24 with an upstream emitting events one second apart
+(they arrive at +0s, +1s, +2s). Buffering behaviour varies by proxy and version, so both protections are kept; compression
+is also kept off for `text/event-stream`.
 
 ## Summaries
 
